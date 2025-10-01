@@ -1,5 +1,9 @@
 
 const getData = async () => {
-  const data = await apiFetch('http://localhost:8080/professional');
+  const apiUrl = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3000/professional'  
+    : '/professional';
+  
+  const data = await apiFetch(apiUrl);
   displayAllData(data);
 };

@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const connectDB = require('./config/database');
@@ -11,10 +12,23 @@ const authRoutes = require('./routes/authRoutes');
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 
 // Connect to MongoDB
 connectDB();
+
+// Add connection event listeners
+mongoose.connection.on('connected', () => {
+  console.log('✅ Mongoose connected to MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.log('❌ Mongoose connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('⚠️  Mongoose disconnected from MongoDB');
+});
 
 // Middleware
 app.use(helmet());
@@ -46,13 +60,31 @@ app.get('/api-docs', (req, res) => {
   });
 });
 
+// Database status route
+app.get('/status', (req, res) => {
+  const dbStatus = mongoose.connection.readyState;
+  const statusMessages = {
+    0: 'Disconnected',
+    1: 'Connected', 
+    2: 'Connecting',
+    3: 'Disconnecting'
+  };
+  
+  res.json({
+    server: 'Running',
+    database: statusMessages[dbStatus] || 'Unknown',
+    databaseState: dbStatus
+  });
+});
+
 // Root route
 app.get('/', (req, res) => {
   res.json({
     message: 'Professional Portfolio API is running!',
     endpoints: {
       professional: '/professional',
-      apiDocs: '/api-docs'
+      apiDocs: '/api-docs',
+      status: '/status'
     }
   });
 });
@@ -60,8 +92,8 @@ app.get('/', (req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
-// 404 handler
-app.use('*', (req, res) => {
+// FIXED: 404 handler - remove the '*' parameter
+app.use((req, res) => {
   res.status(404).json({
     error: 'Route not found',
     message: `The route ${req.originalUrl} does not exist`
@@ -70,7 +102,9 @@ app.use('*', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`API Documentation available at http://localhost:${PORT}/api-docs`);
-  console.log(`Professional data available at http://localhost:${PORT}/professional`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+  console.log(`👤 Professional data: http://localhost:${PORT}/professional`);
+  console.log(`📊 Status: http://localhost:${PORT}/status`);
+  console.log(`🏠 Home: http://localhost:${PORT}/`);
 });
