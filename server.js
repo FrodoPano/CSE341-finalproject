@@ -5,10 +5,12 @@ const cors = require('cors');
 const helmet = require('helmet');
 const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
+const { swaggerUi, specs } = require('./config/swagger');
 
 // Route imports
 const professionalRoutes = require('./routes/professionalRoutes');
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes'); // Add this line
 
 // Initialize Express app
 const app = express();
@@ -26,10 +28,6 @@ mongoose.connection.on('error', (err) => {
   console.log('❌ Mongoose connection error:', err);
 });
 
-mongoose.connection.on('disconnected', () => {
-  console.log('⚠️  Mongoose disconnected from MongoDB');
-});
-
 // Middleware
 app.use(helmet());
 app.use(cors());
@@ -39,26 +37,16 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files from public directory (your frontend)
 app.use(express.static('public'));
 
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }'
+}));
+
 // Routes
 app.use('/professional', professionalRoutes);
 app.use('/auth', authRoutes);
-
-// API documentation route (placeholder for Swagger)
-app.get('/api-docs', (req, res) => {
-  res.json({
-    message: 'API Documentation - Swagger UI will be implemented here',
-    endpoints: {
-      professional: {
-        'GET /professional': 'Get professional data',
-        'GET /professional/:id': 'Get specific professional data'
-      },
-      auth: {
-        'POST /auth/register': 'Register new user',
-        'POST /auth/login': 'User login'
-      }
-    }
-  });
-});
+app.use('/users', userRoutes); // Add this line
 
 // Database status route
 app.get('/status', (req, res) => {
@@ -72,8 +60,10 @@ app.get('/status', (req, res) => {
   
   res.json({
     server: 'Running',
+    environment: process.env.NODE_ENV || 'development',
     database: statusMessages[dbStatus] || 'Unknown',
-    databaseState: dbStatus
+    databaseState: dbStatus,
+    swaggerDocs: '/api-docs'
   });
 });
 
@@ -81,8 +71,11 @@ app.get('/status', (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     message: 'Professional Portfolio API is running!',
+    environment: process.env.NODE_ENV || 'development',
     endpoints: {
       professional: '/professional',
+      users: '/users',
+      auth: '/auth',
       apiDocs: '/api-docs',
       status: '/status'
     }
@@ -92,7 +85,7 @@ app.get('/', (req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
-// FIXED: 404 handler - remove the '*' parameter
+// 404 handler
 app.use((req, res) => {
   res.status(404).json({
     error: 'Route not found',
@@ -102,9 +95,9 @@ app.use((req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+  console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  console.log(`📚 Swagger Documentation: http://localhost:${PORT}/api-docs`);
   console.log(`👤 Professional data: http://localhost:${PORT}/professional`);
+  console.log(`👥 Users: http://localhost:${PORT}/users`);
   console.log(`📊 Status: http://localhost:${PORT}/status`);
-  console.log(`🏠 Home: http://localhost:${PORT}/`);
 });
