@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 3000;
 // Connect to MongoDB
 connectDB();
 
-// Add connection event listeners
+// MongoDB connection events
 mongoose.connection.on('connected', () => {
   console.log('✅ Mongoose connected to MongoDB');
 });
@@ -28,32 +28,34 @@ mongoose.connection.on('error', (err) => {
   console.log('❌ Mongoose connection error:', err);
 });
 
-// Middleware
+// Security middleware
 app.use(helmet());
 
-// CORS configuration - MOVED AFTER app initialization
+// CORS configuration - Allow all origins for Swagger testing
 app.use(cors({
-  origin: [
-    'https://cse341-finalproject.onrender.com',
-    'http://localhost:3000',
-    'http://localhost:8080'
-  ],
+  origin: true, // Allow all origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin']
 }));
 
-// Handle preflight requests - MOVED AFTER CORS middleware
+// Handle preflight requests
 app.options('*', cors());
 
+// Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from public directory (your frontend)
+// Serve static files
 app.use(express.static('public'));
 
-// Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+// Swagger Documentation with CORS headers
+app.use('/api-docs', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  next();
+}, swaggerUi.serve, swaggerUi.setup(specs, {
   explorer: true,
   customCss: '.swagger-ui .topbar { display: none }'
 }));
@@ -63,7 +65,7 @@ app.use('/professional', professionalRoutes);
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 
-// Database status route
+// Status route
 app.get('/status', (req, res) => {
   const dbStatus = mongoose.connection.readyState;
   const statusMessages = {
@@ -77,8 +79,7 @@ app.get('/status', (req, res) => {
     server: 'Running',
     environment: process.env.NODE_ENV || 'development',
     database: statusMessages[dbStatus] || 'Unknown',
-    databaseState: dbStatus,
-    swaggerDocs: '/api-docs'
+    databaseState: dbStatus
   });
 });
 
@@ -97,7 +98,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// Error handling middleware
+// Error handling
 app.use(errorHandler);
 
 // 404 handler
@@ -110,9 +111,6 @@ app.use((req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-  console.log(`📚 Swagger Documentation: http://localhost:${PORT}/api-docs`);
-  console.log(`👤 Professional data: http://localhost:${PORT}/professional`);
-  console.log(`👥 Users: http://localhost:${PORT}/users`);
-  console.log(`📊 Status: http://localhost:${PORT}/status`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📚 Swagger Docs: http://localhost:${PORT}/api-docs`);
 });
