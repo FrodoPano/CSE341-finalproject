@@ -11,8 +11,12 @@ const options = {
     },
     servers: [
       {
-        url: 'https://cse341-finalproject.onrender.com', // Your actual Render URL
+        url: 'https://cse341-finalproject-kngm.onrender.com', // Your actual Render URL
         description: 'Production server'
+      },
+      {
+        url: `http://localhost:${process.env.PORT || 3000}`,
+        description: 'Development server'
       }
     ]
   },

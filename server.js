@@ -33,7 +33,11 @@ app.use(helmet());
 
 // CORS configuration - Allow all origins for Swagger testing
 app.use(cors({
-  origin: true, // Allow all origins
+  origin: [
+    'https://cse341-finalproject-kngm.onrender.com', // Your actual Render URL
+    'http://localhost:3000',
+    'http://localhost:8080'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin']
