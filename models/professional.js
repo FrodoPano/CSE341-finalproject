@@ -67,7 +67,7 @@ const professionalSchema = new mongoose.Schema({
     }
   }
 }, {
-  timestamps: true
+  timestamps: true // This automatically creates createdAt and updatedAt
 });
 
 module.exports = mongoose.model('Professional', professionalSchema);
