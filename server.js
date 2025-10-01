@@ -1,6 +1,3 @@
-// Handle preflight requests
-app.options('*', cors());
-
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -13,7 +10,7 @@ const { swaggerUi, specs } = require('./config/swagger');
 // Route imports
 const professionalRoutes = require('./routes/professionalRoutes');
 const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes'); // Add this line
+const userRoutes = require('./routes/userRoutes');
 
 // Initialize Express app
 const app = express();
@@ -32,8 +29,9 @@ mongoose.connection.on('error', (err) => {
 });
 
 // Middleware
-// Middleware
 app.use(helmet());
+
+// CORS configuration - MOVED AFTER app initialization
 app.use(cors({
   origin: [
     'https://cse341-finalproject.onrender.com',
@@ -44,6 +42,10 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
+
+// Handle preflight requests - MOVED AFTER CORS middleware
+app.options('*', cors());
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -59,7 +61,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
 // Routes
 app.use('/professional', professionalRoutes);
 app.use('/auth', authRoutes);
-app.use('/users', userRoutes); // Add this line
+app.use('/users', userRoutes);
 
 // Database status route
 app.get('/status', (req, res) => {
