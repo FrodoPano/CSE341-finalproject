@@ -6,6 +6,8 @@ const helmet = require('helmet');
 const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
 const { swaggerUi, specs } = require('./config/swagger');
+const projectRoutes = require('./routes/projectRoutes');
+const skillRoutes = require('./routes/skillRoutes');
 
 // Route imports
 const professionalRoutes = require('./routes/professionalRoutes');
@@ -68,6 +70,9 @@ app.use('/api-docs', (req, res, next) => {
 app.use('/professional', professionalRoutes);
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
+
+app.use('/projects', projectRoutes);
+app.use('/skills', skillRoutes);
 
 // Status route
 app.get('/status', (req, res) => {

@@ -11,10 +11,15 @@ const Professional = require('../models/professional');
  *         - base64Image
  *         - primaryDescription
  *       properties:
+ *         _id:
+ *           type: string
+ *           description: The auto-generated ID
  *         professionalName:
  *           type: string
+ *           description: Full professional name
  *         base64Image:
  *           type: string
+ *           description: Base64 encoded profile image
  *         nameLink:
  *           type: object
  *           properties:
@@ -24,12 +29,16 @@ const Professional = require('../models/professional');
  *               type: string
  *         primaryDescription:
  *           type: string
+ *           description: Primary professional description
  *         workDescription1:
  *           type: string
+ *           description: First work description
  *         workDescription2:
  *           type: string
+ *           description: Second work description
  *         linkTitleText:
  *           type: string
+ *           description: Title for links section
  *         linkedInLink:
  *           type: object
  *           properties:
@@ -44,6 +53,29 @@ const Professional = require('../models/professional');
  *               type: string
  *             link:
  *               type: string
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *       example:
+ *         _id: 507f1f77bcf86cd799439011
+ *         professionalName: Jane Doe
+ *         base64Image: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==
+ *         nameLink:
+ *           firstName: Jane
+ *           url: https://example.com
+ *         primaryDescription: Full Stack Developer
+ *         workDescription1: Experienced developer with 5+ years in web development.
+ *         workDescription2: Specialized in React, Node.js, and MongoDB.
+ *         linkTitleText: Connect with me
+ *         linkedInLink:
+ *           text: LinkedIn
+ *           link: https://linkedin.com/in/janedoe
+ *         githubLink:
+ *           text: GitHub
+ *           link: https://github.com/janedoe
  */
 
 // Sample data for initial setup
@@ -72,11 +104,11 @@ const sampleData = {
  * @swagger
  * /professional:
  *   get:
- *     summary: Get all professional profiles
- *     tags: [Professional]
+ *     summary: Returns the list of all professionals
+ *     tags: [Professionals]
  *     responses:
  *       200:
- *         description: Successful operation
+ *         description: The list of professionals
  *         content:
  *           application/json:
  *             schema:
@@ -85,10 +117,6 @@ const sampleData = {
  *                 $ref: '#/components/schemas/Professional'
  *       500:
  *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
 const getAllProfessionals = async (req, res) => {
   try {
@@ -116,7 +144,7 @@ const getAllProfessionals = async (req, res) => {
  * /professional/{id}:
  *   get:
  *     summary: Get professional by ID
- *     tags: [Professional]
+ *     tags: [Professionals]
  *     parameters:
  *       - in: path
  *         name: id
@@ -172,13 +200,29 @@ const getProfessionalById = async (req, res) => {
  * /professional:
  *   post:
  *     summary: Create a new professional profile
- *     tags: [Professional]
+ *     tags: [Professionals]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/Professional'
+ *           example:
+ *             professionalName: "John Smith"
+ *             base64Image: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+ *             nameLink:
+ *               firstName: "John"
+ *               url: "https://johnsmith.com"
+ *             primaryDescription: "Senior Software Engineer"
+ *             workDescription1: "Experienced full-stack developer with 8+ years in the industry."
+ *             workDescription2: "Specialized in cloud architecture and microservices."
+ *             linkTitleText: "Connect with me:"
+ *             linkedInLink:
+ *               text: "LinkedIn"
+ *               link: "https://linkedin.com/in/johnsmith"
+ *             githubLink:
+ *               text: "GitHub"
+ *               link: "https://github.com/johnsmith"
  *     responses:
  *       201:
  *         description: Professional created successfully
@@ -193,6 +237,61 @@ const getProfessionalById = async (req, res) => {
  */
 const createProfessional = async (req, res) => {
   try {
+    // Manual validation
+    const { professionalName, base64Image, primaryDescription } = req.body;
+
+    if (!professionalName || !base64Image || !primaryDescription) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Professional name, base64 image, and primary description are required'
+      });
+    }
+
+    if (professionalName.length < 2) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Professional name must be at least 2 characters long'
+      });
+    }
+
+    if (primaryDescription.length < 10) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Primary description must be at least 10 characters long'
+      });
+    }
+
+    // Validate nested objects
+    if (req.body.nameLink) {
+      const { firstName, url } = req.body.nameLink;
+      if (!firstName || !url) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'Name link must include firstName and url'
+        });
+      }
+    }
+
+    if (req.body.linkedInLink) {
+      const { text, link } = req.body.linkedInLink;
+      if (!text || !link) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'LinkedIn link must include text and link'
+        });
+      }
+    }
+
+    if (req.body.githubLink) {
+      const { text, link } = req.body.githubLink;
+      if (!text || !link) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'GitHub link must include text and link'
+        });
+      }
+    }
+
     const professional = new Professional(req.body);
     const savedProfessional = await professional.save();
     
@@ -220,7 +319,7 @@ const createProfessional = async (req, res) => {
  * /professional/{id}:
  *   put:
  *     summary: Update professional profile
- *     tags: [Professional]
+ *     tags: [Professionals]
  *     parameters:
  *       - in: path
  *         name: id
@@ -250,6 +349,52 @@ const createProfessional = async (req, res) => {
  */
 const updateProfessional = async (req, res) => {
   try {
+    // Manual validation for updates
+    if (req.body.professionalName && req.body.professionalName.length < 2) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Professional name must be at least 2 characters long'
+      });
+    }
+
+    if (req.body.primaryDescription && req.body.primaryDescription.length < 10) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Primary description must be at least 10 characters long'
+      });
+    }
+
+    // Validate nested objects if provided
+    if (req.body.nameLink) {
+      const { firstName, url } = req.body.nameLink;
+      if (!firstName || !url) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'Name link must include firstName and url'
+        });
+      }
+    }
+
+    if (req.body.linkedInLink) {
+      const { text, link } = req.body.linkedInLink;
+      if (!text || !link) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'LinkedIn link must include text and link'
+        });
+      }
+    }
+
+    if (req.body.githubLink) {
+      const { text, link } = req.body.githubLink;
+      if (!text || !link) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'GitHub link must include text and link'
+        });
+      }
+    }
+
     const professional = await Professional.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -294,7 +439,7 @@ const updateProfessional = async (req, res) => {
  * /professional/{id}:
  *   delete:
  *     summary: Delete professional profile
- *     tags: [Professional]
+ *     tags: [Professionals]
  *     parameters:
  *       - in: path
  *         name: id

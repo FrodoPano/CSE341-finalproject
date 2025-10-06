@@ -1,5 +1,152 @@
 const User = require('../models/user');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+// Generate JWT Token
+const generateToken = (userId) => {
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET || 'fallback-secret', {
+    expiresIn: '7d'
+  });
+};
+
+// User registration
+const registerUser = async (req, res) => {
+  try {
+    const { email, password, role = 'user' } = req.body;
+
+    // Validation
+    if (!email || !password) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Email and password are required'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Check if user exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        error: 'Duplicate email',
+        message: 'User with this email already exists'
+      });
+    }
+
+    // Create user
+    const user = new User({ email, password, role });
+    await user.save();
+
+    // Generate token
+    const token = generateToken(user._id);
+
+    // Don't send password back
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      user: userResponse,
+      token
+    });
+  } catch (error) {
+    console.error('Error registering user:', error);
+    
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({
+        error: 'Validation Error',
+        messages
+      });
+    }
+    
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+};
+
+// User login
+const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validation
+    if (!email || !password) {
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Email and password are required'
+      });
+    }
+
+    // Find user and include password for comparison
+    const user = await User.findOne({ email }).select('+password');
+    if (!user) {
+      return res.status(401).json({
+        error: 'Authentication failed',
+        message: 'Invalid email or password'
+      });
+    }
+
+    // Check password
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        error: 'Authentication failed',
+        message: 'Invalid email or password'
+      });
+    }
+
+    // Generate token
+    const token = generateToken(user._id);
+
+    // Don't send password back
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.status(200).json({
+      message: 'Login successful',
+      user: userResponse,
+      token
+    });
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+};
+
+// Get current user profile
+const getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+};
+
+
+
+
+
+
+
+
+
+
 
 /**
  * @swagger
@@ -300,6 +447,9 @@ const deleteUser = async (req, res) => {
 };
 
 module.exports = {
+  registerUser,
+  loginUser,
+  getCurrentUser,
   getAllUsers,
   getUserById,
   createUser,
